@@ -17,6 +17,9 @@ namespace rGunti.Momoka2.Discord {
             string botKey = ReadBotTokenFile();
             log.Trace($"Bot Key read, is {botKey}");
 
+            Bot bot = new Bot(botKey);
+            bot.Run();
+
             log.Info(" === PROGRAM END ===");
             Console.ReadLine();
         }
