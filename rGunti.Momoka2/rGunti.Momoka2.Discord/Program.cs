@@ -15,7 +15,7 @@ namespace rGunti.Momoka2.Discord {
             log.Info("Hallo Welt, ich bin Momoka2 Discord Bot!");
 
             string botKey = ReadBotTokenFile();
-            log.Trace($"Bot Key read, is {botKey}");
+            //log.Trace($"Bot Key read, is {botKey}");
 
             Bot bot = new Bot(botKey);
             bot.Run();
