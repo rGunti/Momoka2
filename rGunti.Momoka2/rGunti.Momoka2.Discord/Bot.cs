@@ -77,7 +77,7 @@ namespace rGunti.Momoka2.Discord {
 
         private void Client_MessageReceived(object sender, MessageEventArgs e) {
             if (!e.Message.IsAuthor) {
-                log.Trace($"{e.Message.User.Name} from {e.Server.Name} said: {e.Message.Text}");
+                log.Trace($"{e.Message.User.Name} from {e.Server?.Name} said: {e.Message.Text}");
             }
         }
 
