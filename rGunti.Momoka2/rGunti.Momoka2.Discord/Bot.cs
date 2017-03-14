@@ -108,7 +108,7 @@ namespace rGunti.Momoka2.Discord {
 
             client.GetService<CommandService>().CreateCommand("perm")
                 //.Description("")
-                .Parameter("Role ID", ParameterType.Required)
+                .Parameter("Role ID / Name", ParameterType.Required)
                 .Parameter("Allow", ParameterType.Required)
                 .Do(e => {
                     var permManager = ServerPermissionManager.GetPermissionManager(e.Server);
@@ -117,27 +117,51 @@ namespace rGunti.Momoka2.Discord {
                         return;
                     }
 
-                    string roleIDString = e.GetArg("Role ID");
+                    string roleString = e.GetArg("Role ID / Name");
                     bool allowCommandUsage = "1" == e.GetArg("Allow");
                     ulong roleID;
 
-                    if (!ulong.TryParse(roleIDString, out roleID)) {
-                        e.Channel.SendMessage($":x: {e.User.Mention}: ");
-                        return;
+                    Role role;
+                    if (ulong.TryParse(roleString, out roleID)) {
+                        role = e.Server.GetRole(roleID);
+                    } else {
+                        IEnumerable<Role> roles = e.Server.FindRoles(roleString);
+                        if (roles == null || roles.Count() == 0) {
+                            e.Channel.SendMessage($":x: {e.User.Mention}: Can't find a role with the name \"{roleString}\".");
+                            return;
+                        }
+                        role = roles.First();
                     }
 
-                    Role role = e.Server.GetRole(roleID);
                     if (role == null) {
                         e.Channel.SendMessage($":x: {e.User.Mention}: Given Role ID is invalid!");
                     } else {
                         permManager.SetHasPermission(role.Id, allowCommandUsage);
                         e.Channel.SendMessage($":white_check_mark: {e.User.Mention}: Permission for Role @{role.Name} ({role.Id}) is set to " +
-                            $"{(allowCommandUsage ? ":heavy_check_mark:" : ":no_entry:")}.");
+                            $"{(allowCommandUsage ? ":white_check_mark:" : ":no_entry:")}.");
                     }
                 })
             ;
+            client.GetService<CommandService>().CreateCommand("listperm")
+                .Description("Lists all set permissions on this server.")
+                .Do(e => {
+                    var permManager = ServerPermissionManager.GetPermissionManager(e.Server);
+                    if (!permManager.HasPermission(e.Server, e.User)) {
+                        e.Channel.SendMessage($":x: {e.User.Mention}: You don't have permission to do that.");
+                        return;
+                    }
+
+                    string responseString = $"**Permission List for {e.Server.Name}**";
+                    foreach (KeyValuePair<ulong, bool> kvp in permManager.Dictionary) {
+                        Role role = e.Server.GetRole(kvp.Key);
+                        responseString += $"\n{(kvp.Value ? ":white_check_mark:" : ":no_entry:")} [{kvp.Key}] {role?.Name ?? "<does not exist>"}";
+                    }
+
+                    e.Channel.SendMessage(responseString);
+                })
+            ;
 #if DEBUG
-            client.GetService<CommandService>().CreateCommand("debugrole")
+                    client.GetService<CommandService>().CreateCommand("debugrole")
                 .Do(e => {
                     log.Trace($"Roles of Server [{e.Server?.Id}] {e.Server?.Name}");
                     foreach (Role role in e.Server.Roles) {

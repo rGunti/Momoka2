@@ -54,6 +54,8 @@ namespace rGunti.Momoka2.Discord.Permissions {
             File.WriteAllText(contentFilePath, JsonConvert.SerializeObject(permissionDictionary, Formatting.Indented));
         }
 
+        public Dictionary<ulong, bool> Dictionary { get { return permissionDictionary; } }
+
         public void SetHasPermission(ulong roleID, bool canUseCommands) {
             permissionDictionary[roleID] = canUseCommands;
             SaveFile();
