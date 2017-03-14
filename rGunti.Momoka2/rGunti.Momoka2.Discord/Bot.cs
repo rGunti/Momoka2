@@ -13,6 +13,7 @@ namespace rGunti.Momoka2.Discord {
         private Logger log = LogManager.GetCurrentClassLogger();
         private DiscordClient client;
         private string apiKey;
+        private Random random;
 
         public Bot(string apiKey) {
             client = new DiscordClient();
@@ -22,6 +23,8 @@ namespace rGunti.Momoka2.Discord {
         }
 
         private void InitCommands() {
+            random = new Random(DateTime.Now.Millisecond);
+
             client.MessageReceived += Client_MessageReceived;
             client.UsingCommands(x => {
                 x.PrefixChar = '!';
@@ -40,9 +43,9 @@ namespace rGunti.Momoka2.Discord {
                     log.Trace($"Message Listing from Channel {e.Channel.Name} on {e.Server.Name}:");
                     Message[] messages = await e.Channel.DownloadMessages(100);
 
-                    foreach (var message in messages) {
-                        log.Trace($"{message.User.Name} wrote at {message.Timestamp}: {message.Text}");
-                    }
+                    //foreach (var message in messages) {
+                    //    log.Trace($"{message.User.Name} wrote at {message.Timestamp}: {message.Text}");
+                    //}
 
                     log.Info($"Deleting {messages.Length} messages in Channel {e.Channel.Name} on {e.Server.Name}");
                     await e.Channel.DeleteMessages(messages);
@@ -71,6 +74,29 @@ namespace rGunti.Momoka2.Discord {
                         cm.SetContent(term, content);
                         await e.Channel.SendMessage($":white_check_mark: {e.User.Mention} has stored new info about **{term}**.");
                     }
+                })
+            ;
+            client.GetService<CommandService>().CreateCommand("dice")
+                .Description("Rolls a six-sided dice and returns its result.")
+                .Do(e => {
+                    int randomNumber = random.Next(1, 7);
+                    e.Channel.SendMessage($"{e.User.Mention}, your dice showed you a **{randomNumber}**.");
+                })
+            ;
+            client.GetService<CommandService>().CreateCommand("ndice")
+                .Description("Rolls a n-sided dice and returns its result.")
+                .Parameter("Sides", ParameterType.Required)
+                .Do(e => {
+                    string sidesString = e.GetArg("Sides");
+                    int sides;
+
+                    if (!int.TryParse(sidesString, out sides)) {
+                        e.Channel.SendMessage($":x: {e.User.Mention}: You have to give me a **number** of sides for the n-sided dice to work.");
+                        return;
+                    }
+
+                    int randomNumber = random.Next(1, sides + 1);
+                    e.Channel.SendMessage($"{e.User.Mention}, your {sides}-sided dice showed you a **{randomNumber}**.");
                 })
             ;
         }
