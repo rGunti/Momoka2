@@ -2,6 +2,7 @@
 using Discord.Commands;
 using NLog;
 using rGunti.Momoka2.Discord.InfoBot;
+using rGunti.Momoka2.Discord.Permissions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +35,10 @@ namespace rGunti.Momoka2.Discord {
                 .Alias("test", "hi")
                 .Description("Answers with \"Pong\"!")
                 .Do(async e => {
+                    if (!ServerPermissionManager.GetPermissionManager(e.Server).HasPermission(e.Server, e.User)) {
+                        await e.Channel.SendMessage($":x: {e.User.Mention}: You don't have permission to do that.");
+                        return;
+                    }
                     await e.Channel.SendMessage($"{e.User.Mention}, Pong!");
                 })
             ;
@@ -99,6 +104,48 @@ namespace rGunti.Momoka2.Discord {
                     e.Channel.SendMessage($"{e.User.Mention}, your {sides}-sided dice showed you a **{randomNumber}**.");
                 })
             ;
+
+
+            client.GetService<CommandService>().CreateCommand("perm")
+                //.Description("")
+                .Parameter("Role ID", ParameterType.Required)
+                .Parameter("Allow", ParameterType.Required)
+                .Do(e => {
+                    var permManager = ServerPermissionManager.GetPermissionManager(e.Server);
+                    if (!permManager.HasPermission(e.Server, e.User)) {
+                        e.Channel.SendMessage($":x: {e.User.Mention}: You don't have permission to do that.");
+                        return;
+                    }
+
+                    string roleIDString = e.GetArg("Role ID");
+                    bool allowCommandUsage = "1" == e.GetArg("Allow");
+                    ulong roleID;
+
+                    if (!ulong.TryParse(roleIDString, out roleID)) {
+                        e.Channel.SendMessage($":x: {e.User.Mention}: ");
+                        return;
+                    }
+
+                    Role role = e.Server.GetRole(roleID);
+                    if (role == null) {
+                        e.Channel.SendMessage($":x: {e.User.Mention}: Given Role ID is invalid!");
+                    } else {
+                        permManager.SetHasPermission(role.Id, allowCommandUsage);
+                        e.Channel.SendMessage($":white_check_mark: {e.User.Mention}: Permission for Role @{role.Name} ({role.Id}) is set to " +
+                            $"{(allowCommandUsage ? ":heavy_check_mark:" : ":no_entry:")}.");
+                    }
+                })
+            ;
+#if DEBUG
+            client.GetService<CommandService>().CreateCommand("debugrole")
+                .Do(e => {
+                    log.Trace($"Roles of Server [{e.Server?.Id}] {e.Server?.Name}");
+                    foreach (Role role in e.Server.Roles) {
+                        log.Trace($" - [{role.Id}] {role.Name} ({role.Color})");
+                    }
+                })
+            ;
+#endif
         }
 
         private void Client_MessageReceived(object sender, MessageEventArgs e) {
